@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js" integrity="sha384-7+zCNj/IqJ95wo16oMtfsKbZ9ccEh31eOz1HGyDuCQ6wgnyJNSYdrPa03rtR1zdB" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js" integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtK3zEFEIsxhlmWl5/YESvpZ13" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <title>Instana API</title>
+    <style>
+        .fixTableHead {
+          overflow-y: auto;
+          height: 400px;
+        }
+        table{
+          border-collapse: collapse;        
+          width: 100%;
+        }
+        th,
+        td {
+          padding: 8px 30px; 
+          border: 10px solid black;
+        }
+        th {
+           background: black; 
+        }
+        table thead {
+        position: -webkit-sticky; 
+        position: sticky;
+        top: 0;
+        z-index: 1;  
+        background: rgb(234, 232, 232);
+        }
+      </style>
+  </head>
+  <body>
+    <!-- <div class="container-md"> -->
+        <div class="d-flex justify-content-center">
+            <h1 class="text-center mt-3" id="title"><a href="#" style="color:black;text-decoration:none">Instana Custom Reporting</a></h1>
+            <button type="button" id="d" class="btn btn-success m-4" >Get Data</button>
+        </div>
+        <div class="align-items-center justify-content-center m-4">
+            <form id="myforming">
+                <b>From :</b> <input type="datetime-local" id="from"> &nbsp; &nbsp;
+                <b>To :</b> <input type="datetime-local" id="to">  &nbsp; &nbsp;
+                <button type="button" id="d2" class="btn btn-sm btn-success mb-1" >Get Values</button>
+                <button type="button" id="d3" class="btn btn-sm btn-warning ml-5 mb-1" >Reset</button>
+            </form>
+        </div>
+        <div class="fixTableHead">
+        <table class="table table-hover table-bordered m-1 text-center" id="tableid" style="border: 1px solid black;">
+            <thead class="">
+            <tr id="tableheader1">
+                <th scope="col">Sr.No</th>
+                <th scope="col">Date</th>
+                <th scope="col">All Services</th>
+                <th scope="col">API Gateway</th>
+                <th scope="col">Auth Service All calls Perspective</th>
+                <th scope="col">Health</th>
+                <th scope="col">Life</th>
+                <th scope="col">Mintpro</th>
+                <th scope="col">Motor</th>
+                <th scope="col">Motor ReEngineering</th>
+                <th scope="col">Mutual Fund</th>
+                <th scope="col">Ninja</th>
+            </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        </div>
+        <h3 class="text-center mt-4" style="font-size: 35px;">Report</h3>
+        <div id="show" class="fixTableHead mt-4" style="width: 100%;text-align: center;height: 400px;">
+            <table class="table table-hover table-bordered mt-2 text-center m-1" id="tableid2" style="border: 2px solid black;">
+                <thead class="">
+                    <tr id="tableheader2">
+                        <th scope="col">Sr.No</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Message</th>
+                    </tr>
+                    </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+        <canvas id="myChart"></canvas>
+    </div>
+    <script>
+        var totalData = [];
+        $(document).ready(function()
+        {
+            $("#d2").attr("disabled", true);
+            $("#d3").attr("disabled", true);
+            $("#title").click(function()
+            {
+                window.location.reload();
+            })
+            $("#d").click(function()
+            {
+                $.ajax(
+                {
+                    type:"GET",
+                    url:"http://localhost:8082/latency",
+                    success:function(latencyJson)
+                    {
+                        totalData = latencyJson;
+                        var datearray = [];
+                        var standardarray = [];
+                        var tbodyRef = document.getElementById('tableid').getElementsByTagName('tbody')[0];
+                        var tbodyRef2 = document.getElementById("tableid2").getElementsByTagName("tbody")[0];
+                        var names = ["All Services","API Gateway","Auth Service All calls Perspective","Health","Life","Mintpro","Motor","Motor ReEngineering","Mutual Fund","Ninja"];
+                        for(var i=0;i<latencyJson.length;i++)
+                        {
+                            var newRow = tbodyRef.insertRow();
+                            var newCell = newRow.insertCell();
+                            var Srno = document.createTextNode(tbodyRef.rows.length);
+                            newCell.appendChild(Srno);
+                            var newCell = newRow.insertCell();
+                            var utcSeconds = 0;
+                            var d = 0;
+                            var count=0;
+                            latencyJson[i].forEach(element => 
+                            {
+                                count++;
+                                var newCell = newRow.insertCell();
+                                utcSeconds = element[0][0];
+                                d = new Date(utcSeconds);
+                                var data = document.createTextNode(element[0][1]);
+                                newCell.appendChild(data);
+                            });
+                            datearray.push(d);
+                            var e = d.toString();
+                            var index = e.lastIndexOf(':') +3
+                            var today_date = e.substring(0, index);
+                            var date = document.createTextNode(today_date);
+                            newCell.appendChild(date);
+                        }
+                        var threshold = [];
+                        var result=0;
+                        for(var i=0;i<10;i++)
+                        {
+                            result=0;
+                            for(var j=0;j<latencyJson.length;j++)
+                            {
+                                standardarray.push(latencyJson[j][i][0][1]);
+                            }
+                            const n = standardarray.length
+                            const mean = standardarray.reduce((a, b) => a + b) / n
+                            const deviation = Math.sqrt(standardarray.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+                            result = mean+deviation;
+                            threshold.push(result);
+                            standardarray = [];
+                        }
+                        for(var i=0;i<threshold.length;i++)
+                        {
+                            console.log(threshold[i]);
+                        }
+                        var row = document.getElementsByTagName("tr");              
+                        var count=0;
+                        for(var i=0;i<10;i++)
+                        {
+                            count++;
+                            for(var k=0;k<latencyJson.length;k++)
+                            { 
+                                if(latencyJson[k][i][0][1]>threshold[i])
+                                {
+                                    // tabledatavalues[2].style.color = "red";
+                                    // tabledatavalues[1].style.fontWeight = "700";
+                                    // row[k].style.color = "red";
+                                    // row[k].style.fontWeight = "700";
+                                    var newRow2 = tbodyRef2.insertRow();
+                                    var newCell2 = newRow2.insertCell();
+                                    var Srno2 = document.createTextNode(tbodyRef2.rows.length);
+                                    newCell2.appendChild(Srno2);
+                                    var newCell2 = newRow2.insertCell();
+                                    var date2 = document.createTextNode(datearray[k]);
+                                    newCell2.appendChild(date2);
+                                    var newCell2 = newRow2.insertCell();
+                                    var value = document.createTextNode(" Application "+names[count-1] +" has the value of "+latencyJson[k][i][0][1]+" so the latency value is high");
+                                    newCell2.appendChild(value);
+                                }
+                            }
+                        }
+                    },
+                    error:function(res){
+                        console.log("error");
+                    }
+                })
+                var x = $("#d").attr("disabled", true);
+                if(x)
+                {
+                    $("#d2").attr("disabled", false);
+                    $("#d3").attr("disabled", false);
+                }
+            })
+            //for filtering the data
+            $("#d2").click(function(){
+                var fromvalue = document.getElementById("from").value;
+                var tovalue = document.getElementById("to").value;
+                if(tovalue=="")
+                {
+                    tovalue=new Date();
+                }
+                if(fromvalue!="" && tovalue!="")
+                {
+                    var newDate = new Date(fromvalue);
+                    var newDate2 = new Date(tovalue);
+                    var a = newDate.getTime();
+                    var b = newDate2.getTime();
+                    var tablefilter = document.getElementById("tableid").getElementsByTagName("tr");
+                    var tablefilter2 = document.getElementById("tableid2").getElementsByTagName("tr");
+                    for(var i=1;i<tablefilter.length;i++)
+                    {
+                        var td = tablefilter[i].getElementsByTagName("td")[1];
+                        var text = td.textContent;
+                        var c = new Date(text);
+                        var d = c.getTime();
+                        if(+a<=+d && +d<=+b)
+                        {
+                            tablefilter[i].style.display = "";
+                        }
+                        else
+                        {
+                            tablefilter[i].style.display = "none";
+                        }
+                    }
+                    for(var i=1;i<tablefilter2.length;i++)
+                    {
+                        var td = tablefilter2[i].getElementsByTagName("td")[1];
+                        var text = td.textContent;
+                        var c = new Date(text);
+                        var d = c.getTime();
+                        if(+a<=+d && +d<=+b)
+                        {
+                            tablefilter2[i].style.display = "";
+                        }
+                        else
+                        {
+                            tablefilter2[i].style.display = "none";
+                        }
+                    }
+                }
+            })
+            //for reseting the filtered data
+            $("#d3").click(function()
+            {
+                var datearray = [];
+                var standardarray = [];
+                document.getElementById("myforming").reset();
+                $("#tableid tr:not(#tableheader1)").remove();
+                $("#tableid2 tr:not(#tableheader2)").remove();
+                var tbodyRef = document.getElementById('tableid').getElementsByTagName('tbody')[0];
+                var tbodyRef2 = document.getElementById("tableid2").getElementsByTagName("tbody")[0];
+                var names = ["All Services","API Gateway","Auth Service All calls Perspective","Health","Life","Mintpro","Motor","Mutual Fund","Ninja"];
+                for(var i=0;i<totalData.length;i++)
+                {
+                    var newRow = tbodyRef.insertRow();
+                    var newCell = newRow.insertCell();
+                    var Srno = document.createTextNode(tbodyRef.rows.length);
+                    newCell.appendChild(Srno);
+                    var newCell = newRow.insertCell();
+                    var utcSeconds = 0;
+                    var d = 0;
+                    var count=0;
+                    totalData[i].forEach(element => 
+                    {
+                        count++;
+                        var newCell = newRow.insertCell();
+                        utcSeconds = element[0][0];
+                        d = new Date(utcSeconds);
+                        var data = document.createTextNode(element[0][1]);
+                        newCell.appendChild(data);
+                    });
+                    datearray.push(d);
+                    var e = d.toString();
+                    var index = e.lastIndexOf(':') +3
+                    var today_date = e.substring(0, index);
+                    var date = document.createTextNode(today_date);
+                    newCell.appendChild(date);
+                }
+                var threshold = [];
+                        var result=0;
+                        for(var i=0;i<10;i++)
+                        {
+                            result=0;
+                            for(var j=0;j<totalData.length;j++)
+                            {
+                                standardarray.push(totalData[j][i][0][1]);
+                            }
+                            const n = standardarray.length
+                            const mean = standardarray.reduce((a, b) => a + b) / n
+                            const deviation = Math.sqrt(standardarray.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+                            result = mean+deviation;
+                            threshold.push(result);
+                            standardarray = [];
+                        }
+                        for(var i=0;i<threshold.length;i++)
+                        {
+                            console.log(threshold[i]);
+                        }
+                        var count=0;
+                        for(var i=0;i<10;i++)
+                        {
+                            count++;
+                            var row = document.getElementsByTagName("tr");
+                            for(var k=0;k<totalData.length;k++)
+                            { 
+                                // var tabledatavalues = row.getElementsByTagName("td");
+                                var tabledatavalues = document.getElementsByTagName("td");
+                                if(totalData[k][i][0][1]>threshold[i])
+                                {
+                                    // tabledatavalues[2].style.color = "red";
+                                    // tabledatavalues[1].style.fontWeight = "700";
+                                    // row[k].style.color = "red";
+                                    // row[k].style.fontWeight = "700";
+                                    var newRow2 = tbodyRef2.insertRow();
+                                    var newCell2 = newRow2.insertCell();
+                                    var Srno2 = document.createTextNode(tbodyRef2.rows.length);
+                                    newCell2.appendChild(Srno2);
+                                    var newCell2 = newRow2.insertCell();
+                                    var date2 = document.createTextNode(datearray[k]);
+                                    newCell2.appendChild(date2);
+                                    var newCell2 = newRow2.insertCell();
+                                    var value = document.createTextNode(" Application "+names[count-1] +" has the value of "+totalData[k][i][0][1]+" so the latency value is high");
+                                    newCell2.appendChild(value);
+                                }
+                            }
+                        }
+            })
+        })
+    </script>
+  </body>
+</html>
+
+<!-- // var tabledatavalues = row.getElementsByTagName("td");
+                                // var tabledatavalues = 
+                                // console.log(tabledatavalues);
+                                // var rowsdata = row[k+1];
+                                // console.log(rowsdata);
+                                // var tabledata = rowsdata.getElementsByTagName("td");
+                                // console.log(tabledata[k+2].innerText);
+                                // ans++;
+                                // console.log(row[k+1]); -->
+
+
+
+
